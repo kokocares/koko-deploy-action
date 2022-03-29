@@ -1,0 +1,70 @@
+name: 'Koko CloudRun Deployment'
+description: 'Deployment script for building, testing and deploying to GCP CloudRun'
+inputs:
+  name:
+    description: 'Service name'
+    required: true
+  registry:
+    description: 'Registry url'
+    required: true
+  region:
+    description: 'GCP Region'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    # Setup gcloud CLI
+    - name: 'GCP Auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        credentials_json: '${{ secrets.GCP_KEY }}'
+
+    # Configure docker to use the gcloud command-line tool as a credential helper
+    - run: |
+        gcloud auth configure-docker us-west1-docker.pkg.dev
+
+    # Build the Docker image
+    - name: Build
+      run: |
+        docker build -t sut  .
+
+    - name: Test
+      if: hashFiles('docker-compose.test.yml') != ''
+      run: |
+        docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+
+    - name: Publish
+      run: |
+        docker tag sut ${{ inputs.registry }}/${{ inputs.name }}:latest
+        docker push ${{ inputs.registry }}/${{ inputs.name }}:latest
+
+    - name: Publish production
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker tag ${{ inputs.registry }}/${{ inputs.name }}:latest ${{ inputs.registry }}/${{ inputs.name }}:production
+        docker push ${{ inputs.registry }}/${{ inputs.name }}:production
+
+    - name: Deploy to production
+      if: github.ref == 'refs/heads/main'
+      uses: 'google-github-actions/deploy-cloudrun@v0'
+      with:
+        region: '${{ inputs.region }}'
+        metadata: './deploy/service.yml'
+
+    - name: Deploy to development
+      uses: 'google-github-actions/deploy-cloudrun@v0'
+      with:
+        region: '${{ inputs.region }}'
+        metadata: './deploy/service-dev.yml'
+
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        job_name: Build, Test and Publish
+        status: ${{ job.status }}
+        fields: repo,message,author,action,ref,workflow,took,pullRequest
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
