@@ -31,21 +31,25 @@ runs:
 
     # Build the Docker image
     - name: Build
+      shell: bash
       run: |
         docker build -t sut  .
 
     - name: Test
       if: hashFiles('docker-compose.test.yml') != ''
+      shell: bash
       run: |
         docker-compose -f docker-compose.test.yml up --abort-on-container-exit
 
     - name: Publish
+      shell: bash
       run: |
         docker tag sut ${{ inputs.registry }}/${{ inputs.name }}:latest
         docker push ${{ inputs.registry }}/${{ inputs.name }}:latest
 
     - name: Publish production
       if: github.ref == 'refs/heads/main'
+      shell: bash
       run: |
         docker tag ${{ inputs.registry }}/${{ inputs.name }}:latest ${{ inputs.registry }}/${{ inputs.name }}:production
         docker push ${{ inputs.registry }}/${{ inputs.name }}:production
