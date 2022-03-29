@@ -25,9 +25,10 @@ runs:
       with:
         credentials_json: '${{ inputs.gcp_key }}'
 
-    # Configure docker to use the gcloud command-line tool as a credential helper
-    - run: |
+    - name: 'Configure GCP Docker'
+      run: |
         gcloud auth configure-docker us-west1-docker.pkg.dev
+      shell: bash
 
     # Build the Docker image
     - name: Build
