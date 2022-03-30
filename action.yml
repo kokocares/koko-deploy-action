@@ -76,3 +76,4 @@ runs:
         fields: repo,message,author,action,ref,workflow,took,pullRequest
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
+      if: always()
