@@ -13,9 +13,6 @@ inputs:
   gcp_key:
     description: 'GCP Key'
     required: true
-  slack_webhook_url:
-    description: 'Slack webhook url'
-    required: true
 runs:
   using: "composite"
   steps:
@@ -67,13 +64,3 @@ runs:
       with:
         region: '${{ inputs.region }}'
         metadata: './deploy/service-dev.yml'
-
-    - name: Notify Slack
-      uses: 8398a7/action-slack@v3
-      with:
-        job_name: Build, Test and Publish
-        status: ${{ job.status }}
-        fields: repo,message,author,action,ref,workflow,took,pullRequest
-      env:
-        SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
-      if: always()
