@@ -33,6 +33,11 @@ runs:
       run: |
         docker build -t sut  .
 
+    - name: Github Short Ref
+      id: github-sha
+      shell: bash
+      run: echo "::set-output name=short::$(git rev-parse --short HEAD)"
+
     - name: Test
       if: hashFiles('docker-compose.test.yml') != ''
       shell: bash
@@ -42,25 +47,33 @@ runs:
     - name: Publish
       shell: bash
       run: |
-        docker tag sut ${{ inputs.registry }}/${{ inputs.name }}:latest
-        docker push ${{ inputs.registry }}/${{ inputs.name }}:latest
+        docker tag sut ${{ inputs.registry }}/${{ inputs.name }}:${{ steps.github-sha.outputs.short }}
+        docker push ${{ inputs.registry }}/${{ inputs.name }}:${{ steps.github-sha.outputs.short }}
+        docker tag sut ${{ inputs.registry }}/${{ inputs.name }}:dev
+        docker push ${{ inputs.registry }}/${{ inputs.name }}:dev
 
     - name: Publish production
       if: github.ref == 'refs/heads/main'
       shell: bash
       run: |
         docker tag ${{ inputs.registry }}/${{ inputs.name }}:latest ${{ inputs.registry }}/${{ inputs.name }}:production
-        docker push ${{ inputs.registry }}/${{ inputs.name }}:production
+        docker push ${{ inputs.registry }}/${{ inputs.name }}:prod
+
+    - name: Update image in service
+      shell: bash
+      run: |
+        cat deploy/service-dev.yml | sed 's/IMAGE_TAG/${{ steps.github-sha.outputs.short }}/g' > /tmp/service-dev.yml
+        cat deploy/service.yml | sed 's/IMAGE_TAG/${{ steps.github-sha.outputs.short }}/g' > /tmp/service.yml
 
     - name: Deploy to production
       if: github.ref == 'refs/heads/main'
       uses: 'google-github-actions/deploy-cloudrun@v0'
       with:
         region: '${{ inputs.region }}'
-        metadata: './deploy/service.yml'
+        metadata: '/tmp/service.yml'
 
     - name: Deploy to development
       uses: 'google-github-actions/deploy-cloudrun@v0'
       with:
         region: '${{ inputs.region }}'
-        metadata: './deploy/service-dev.yml'
+        metadata: '/tmp/service-dev.yml'
