@@ -56,7 +56,7 @@ runs:
       if: github.ref == 'refs/heads/main'
       shell: bash
       run: |
-        docker tag ${{ inputs.registry }}/${{ inputs.name }}:latest ${{ inputs.registry }}/${{ inputs.name }}:production
+        docker tag ${{ inputs.registry }}/${{ inputs.name }}:${{ steps.github-sha.outputs.short }} ${{ inputs.registry }}/${{ inputs.name }}:prod
         docker push ${{ inputs.registry }}/${{ inputs.name }}:prod
 
     - name: Update image in service
