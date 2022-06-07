@@ -27,6 +27,14 @@ runs:
         gcloud auth configure-docker us-west1-docker.pkg.dev
       shell: bash
 
+    - name: Docker Cache
+      uses: satackey/action-docker-layer-caching@v0.0.11
+      continue-on-error: true
+      with:
+        key: koko-deploy-action-{hash}
+        restore-keys: |
+          koko-deploy-action-
+
     # Build the Docker image
     - name: Build
       shell: bash
