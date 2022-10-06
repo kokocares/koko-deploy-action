@@ -43,7 +43,7 @@ runs:
     - name: Build
       shell: bash
       run: |
-        docker build -t sut  .
+        docker build --build-arg GIT_REF=$(git rev-parse --short HEAD) -t sut  .
 
     - name: Github Short Ref
       id: github-sha
